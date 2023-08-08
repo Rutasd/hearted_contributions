@@ -22,11 +22,11 @@ var argv = yargs
       demandOption: true,
       type: "string",
     },
-    by: {
-      description: "GitHub username (or comma-separated list of usernames",
-      demandOption: true,
-      type: "string",
-    },
+    // by: {
+    //   description: "GitHub username (or comma-separated list of usernames",
+    //   demandOption: true,
+    //   type: "string",
+    // },
     since: {
       description:
         "timestamp in ISO 8601 format or GitHub issue URL, in which case since will be set to the created_at timestamp of the last comment",
