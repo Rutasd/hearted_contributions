@@ -2,6 +2,8 @@
 
 import yargs from "yargs";
 import csvWriter from "csv-writer";
+import csvParser from "csv-parser";
+import fs from "fs";
 import findHeartedContributions from "../index.js";
 
 var argv = yargs
@@ -35,41 +37,51 @@ var argv = yargs
   })
   .epilog("copyright 2019").argv;
 
-// Create a CSV writer instance
-const writer = csvWriter.createObjectCsvWriter({
-  path: 'heartedItems.csv',
-  header: [
-    { id: 'url', title: 'URL' }
-  ]
-});
 
-// Placeholder for all hearted items
-const allHeartedItems = [];
+  const CSV_PATH = 'database.csv';
 
-const allUsers = getAllUsers();
-
-for (const user of allUsers) {
-  const heartedItems = await findHeartedContributions({
-    ...argv,
-    by: user
-  });
-
-  allHeartedItems.push(...heartedItems.map(url => ({ url })));
-}
-
-// Write to CSV
-await writer.writeRecords(allHeartedItems);
-
-console.log("\n\ndone.\n");
-
-if (allHeartedItems.length === 0) {
-  console.log("No hearted items.");
-}
-
-console.log("hearted items written to CSV file.");
-
-// Function to retrieve all users 
-function getAllUsers() {
+  // Placeholder for all known reaction URLs
+  const knownUrls = new Set();
   
-  return ["gr2m"]; // Example return
-}
+  // Read existing URLs from CSV
+  if (fs.existsSync(CSV_PATH)) {
+      fs.createReadStream(CSV_PATH)
+          .pipe(csvParser())
+          .on('data', (row) => knownUrls.add(row.URL))
+          .on('end', fetchAndWriteReactions);
+  } else {
+      fetchAndWriteReactions();
+  }
+  
+  async function fetchAndWriteReactions() {
+      const heartedReactions = await findHeartedContributions(argv);
+  
+      // Filter out already known reactions
+      const newReactions = heartedReactions.filter(reaction => !knownUrls.has(Object.keys(reaction)[0]));
+  
+      // Create a CSV writer instance
+      const writer = csvWriter.createObjectCsvWriter({
+          path: CSV_PATH,
+          header: [
+              { id: 'url', title: 'URL' },
+              { id: 'users', title: 'Users' }
+          ],
+          append: true  // This ensures we append to the CSV rather than overwrite
+      });
+  
+      const csvRecords = newReactions.map(entry => {
+          const url = Object.keys(entry)[0];
+          return {
+              url: url,
+              users: entry[url].join(', ')
+          };
+      });
+  
+      // Write to CSV if there are new reactions
+      if (csvRecords.length > 0) {
+          await writer.writeRecords(csvRecords);
+          console.log("New hearted items written to CSV file.");
+      } else {
+          console.log("No new hearted items found.");
+      }
+  }
