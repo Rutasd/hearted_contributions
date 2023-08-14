@@ -5,7 +5,7 @@ import getRepositories from "./lib/get-repositories.js";
 import getIssuesAndPullRequestsForRepository from "./lib/get-issues-and-pull-requests-for-repository.js";
 import getCommentsForIssueOrPullRequestUrl from "./lib/get-comments-for-issue-or-pull-request-url.js";
 import getCommitCommentsForRepository from "./lib/get-commit-comments-for-repository.js";
-import getUrlIfHearted from "./lib/get-url-if-hearted.js";
+import getUsersWhoHearted from "./lib/get-users-who-hearted.js";  // renamed function
 import cachePlugin from "./lib/cache-plugin.js";
 
 export default async function findHeartedContributions(options) {
@@ -20,7 +20,6 @@ export default async function findHeartedContributions(options) {
     auth: options.token,
   });
 
-  // log progress
   octokit.hook.before("request", () => {
     process.stdout.write(".");
   });
@@ -38,10 +37,8 @@ export default async function findHeartedContributions(options) {
     ...options,
   };
 
-  // get since based on timestamp or last comment of passed URL
   state.since = await getLastUpdateTimestamp(state);
 
-  // normalize --in option
   if (state.repoOnly) {
     state.owner = state.owner.split("/")[0];
     state.repositories = [state.repoOnly];
@@ -49,7 +46,6 @@ export default async function findHeartedContributions(options) {
     state.repositories = await getRepositories(state);
   }
 
-  // gather all issues, pull requests, and commit comments
   for (const repositoryName of state.repositories) {
     const issuesAndPullRequestUrls =
       await getIssuesAndPullRequestsForRepository(state, repositoryName);
@@ -62,23 +58,23 @@ export default async function findHeartedContributions(options) {
     state.commentsUrls.push(...commentUrls);
   }
 
-  // get comments for issues and pull requests
-  for (const url of state.issuesAndPullRequestUrls) {
-    const commentUrls = await getCommentsForIssueOrPullRequestUrl(state, url);
-    state.commentsUrls.push(...commentUrls);
-  }
+  const heartedInfo = {};  // This will map URLs to arrays of users
 
-  // iterate through all issues, pull requests, and comments and check if they are hearted
-  const heartedItems = [];
   for (const url of [
     ...state.issuesAndPullRequestUrls,
     ...state.commentsUrls,
   ]) {
-    const heartedUrl = await getUrlIfHearted(state, url);
-    if (heartedUrl) {
-      heartedItems.push(heartedUrl);
+    const urlUsers = await getUrlIfHearted(state, url);
+    if (urlUsers) {
+      Object.assign(heartedInfo, urlUsers);
     }
   }
 
-  return heartedItems;
+  // Let's log the data as you requested
+  for (const [url, users] of Object.entries(heartedInfo)) {
+    console.log(`URL: ${url}`);
+    console.log(`Users who hearted: ${users.join(', ')}`);
+  }
+
+  return heartedInfo;
 }

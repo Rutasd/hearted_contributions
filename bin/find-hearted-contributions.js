@@ -46,7 +46,6 @@ const writer = csvWriter.createObjectCsvWriter({
 // Placeholder for all hearted items
 const allHeartedItems = [];
 
-// Placeholder for getting all users - Modify this based on your implementation
 const allUsers = getAllUsers();
 
 for (const user of allUsers) {
