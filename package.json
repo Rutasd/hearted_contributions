@@ -19,6 +19,7 @@
   "license": "ISC",
   "repository": "github:gr2m/find-hearted-contributions",
   "dependencies": {
+    "csv-writer": "^1.6.0",
     "jsonfile": "^5.0.0",
     "mkdirp": "^0.5.1",
     "octokit": "^2.1.0",
