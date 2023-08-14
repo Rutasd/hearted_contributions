@@ -5,7 +5,7 @@ import getRepositories from "./lib/get-repositories.js";
 import getIssuesAndPullRequestsForRepository from "./lib/get-issues-and-pull-requests-for-repository.js";
 import getCommentsForIssueOrPullRequestUrl from "./lib/get-comments-for-issue-or-pull-request-url.js";
 import getCommitCommentsForRepository from "./lib/get-commit-comments-for-repository.js";
-import getUsersWhoHearted from "./lib/get-users-who-hearted.js";  // renamed function
+import getUrlIfHearted from "./lib/get-url-if-hearted.js"; 
 import cachePlugin from "./lib/cache-plugin.js";
 
 export default async function findHeartedContributions(options) {
@@ -58,7 +58,7 @@ export default async function findHeartedContributions(options) {
     state.commentsUrls.push(...commentUrls);
   }
 
-  const heartedInfo = {};  // This will map URLs to arrays of users
+  const heartedReactions = [];  // Array to store hearted reactions.
 
   for (const url of [
     ...state.issuesAndPullRequestUrls,
@@ -66,15 +66,15 @@ export default async function findHeartedContributions(options) {
   ]) {
     const urlUsers = await getUrlIfHearted(state, url);
     if (urlUsers) {
-      Object.assign(heartedInfo, urlUsers);
+      const key = Object.keys(urlUsers)[0];
+      const value = urlUsers[key];
+      
+      heartedReactions.push({ [key]: value });
+      
+      console.log(`URL: ${key}`);
+      console.log(`Users who hearted: ${value.join(', ')}`);
     }
   }
 
-  // Let's log the data as you requested
-  for (const [url, users] of Object.entries(heartedInfo)) {
-    console.log(`URL: ${url}`);
-    console.log(`Users who hearted: ${users.join(', ')}`);
-  }
-
-  return heartedInfo;
+  return heartedReactions;
 }
